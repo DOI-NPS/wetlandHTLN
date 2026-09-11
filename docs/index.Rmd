@@ -1,0 +1,589 @@
+---
+output: 
+  html_document:
+    css: www/styles.css
+title: "Using wetlandHTLN R pkg." 
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+options(width = 10)
+```
+
+```{css echo = FALSE}
+.indent {
+margin-left: 25px;
+font-size: 14px;
+}
+
+.indent2 {
+margin-left: 50px;
+font-size: 12px;
+}
+
+.drop{
+  font-family: "Arial",Arial,sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  padding:0px 0px 0px 0px;
+  margin:0px 0px 0px 0px;
+}
+
+.fxn{
+  color:#1942B5;
+  font-size:14px;
+  font-weight: bold;
+}
+
+.title{
+ display:none;
+}
+/*
+h4{
+  color:#1942B5;
+}
+*/
+```
+
+
+```{r echo = F, include = F}
+print_head <- function(df){
+  max_row <- ifelse(nrow(df) > 6, 6, nrow(df))
+  knitr::kable(df[1:max_row,]) |> #, table.attr = "style='width:60%;'") |> 
+    kableExtra::kable_classic(full_width = F, font_size = 12, 
+                              bootstrap_options = c("condensed"))
+}
+library(tidyverse)
+
+```
+
+## Using the wetlandHTLN R package {.tabset .tabset-pills}
+
+### Getting started {.tabset}
+
+#### Installation
+<h4><b>Step 1.</b> Install R, RStudio, and RTools45 in Company Portal</h4>
+<h4><b>Step 2.</b> Install pak package in R:</h4>
+```{r, eval = F}
+install.packages('pak')
+```
+<h4><b>Step 3.</b> Install wetlandHTLN from GitHub</h4>
+Note that whenever the `wetlandHTLN` package is updated, you can rerun this code to install the latest version.
+```{r, eval = F}
+library(pak)
+pkg_install("doi-nps/wetlandHTLN")
+```
+<h4><b>Step 4.</b> Load wetlandHTLN R package</h4>
+```{r}
+library(wetlandHTLN)
+```
+<h4><b>Step 5.</b> Import wetland monitoring data</h4>
+Note that R is not able to connect to files on Sharepoint or MS Teams (b/c Teams also stores all files on Sharepoint). That means you need to store the database (and eventually the data package files) on your local machine, OneDrive, or HTLN server. The `importData()` function defaults are to import required data tables from the HTLN_wetlands Access database and then compile the data package views (i.e. flatfiles) for use with the R package. Using the default settings requires the `DBI` and `odbc` packages to be installed, and users must have MS Access installed on their computer. If those packages aren't installed, you'll get an error message in the console asking you to install them. Once the data package is published, I'll add importing data package views as an option in this function, which then will not require MS Access or the `DBI` and `odbc` packages.
+
+To keep your workspace clean (i.e. the top right panel with the Environment tab) in R, the default setting for `importData()` is to import data files into an environment called HTLN_wetlands. If you would rather import each individual view into your R session, specify with the new_env argument (e.g., `importData(new_env = F)`). To import data using the default settings (i.e. run `importData()` with no arguments), you must have the HTLN_wetlands access database set as a User DSN called HTLN_wetlands (see "Setting up DSN" tab for more details).  
+
+Currently, the `importData()` function only imports views related to the VIBI. Over time, options to compile/import views for ORAM and hydrology will be added.  
+
+<p>
+<span style='color:#1942B5;'><b>Option 1.</b> Import data using default settings, which imports from DSN named **HTLN_wetlands**.</span></p>
+```{r results = 'hide'}
+#install.packages(c('odbc', 'DBI')) # Only run if not already installed.
+
+importData() 
+importData(type = "DSN", odbc = "HTLN_wetlands", data_type = "vibi") # equivalent to previous line
+```
+
+<p>
+<span style='color:#1942B5;'><b>Option 2.</b> Import data from a specified database.</span></p>
+```{r, results = 'hide'}
+importData(type ='dbfile',
+   filepath = '../data/HTLNwetlands3.5.2.accdb')
+```
+
+Additional import options will be added as the data package is completed for VIBI, and as ORAM and hydrology import features are added, including the ability to export views as csvs and/or a zipped file containing csvs.
+
+<h4><b>Step 6.</b> Play with the data </h4>
+The functions in the `wetlandHTLN` package are designed to work with the views, and are the best way to interact with the data to query by park, site, site type, year, parameter, etc. However, if you want to view the raw data, and you imported the data into the HTLN_wetlands environment, you can access them with the code below:
+```{r eval = F}
+# See list of the views
+names(HTLN_wetlands)
+
+# Look at one of the views
+View(HTLN_wetlands$herbVIBI)
+
+# See top 6 records 
+head(HTLN_wetlands$herbVIBI)
+
+# Check structure of view
+str(HTLN_wetlands$woodyVIBI)
+
+# Assign a view to a data frame named herbs in R. Interact with herbs the way you would work with any normal data frame in R. 
+herbs <- HTLN_wetlands$herbVIBI
+
+```
+While this works, the better approach is to use the "getter" functions within the R package, which access the same files, but allow you to also query data based on park, location, years, plot name, species, etc. See the specific getter function tabs for details. 
+
+If you want to use the `print_head()` function that shows output in this markdown, run the code below. This makes the results print cleaner in the markdown report. For your purposes, you can just run: `head(dataframe)`.
+```{r}
+print_head <- function(df){
+    max_row <- ifelse(nrow(df) > 6, 6, nrow(df))
+    knitr::kable(df[1:max_row,]) |> #, table.attr = "style='width:60%;'") |> 
+    kableExtra::kable_classic(full_width = F, font_size = 12, 
+                              bootstrap_options = c("condensed"))
+}
+
+```
+
+
+#### Getting help
+<h4><b>Getting (and improving) help</b></h4>
+The functions in `wetlandHTLN` have help documentation like any R package. To view the help, you can go to the Packages tab and click on wetlandHTLN (see below). That will show you all the functions in the package. Clicking on individual functions will take you to the help documentation for that function. 
+```{r echo = F, out.height = '115px',  fig.align = 'center'}
+knitr::include_graphics( "./www/finding_R_package.jpg")
+```
+
+<p class = 'fxn'>You can also see the help of a function by running, for example: </p>
+```{r, class.source = 'indent', eval = F}
+?importData
+```
+
+<p class = 'fxn'>If `wetlandHTLN` isn't loaded yet, you'd run: </p>
+```{r, class.source = 'indent', eval = F}
+?wetlandHTLN::importData
+```
+
+Each function's help includes a Description, Usage (i.e. function arguments and their defaults), Argument options/definitions, and several examples showing how the function can be used. 
+
+<b><span style='color:red;'>This is where you come in! If you notice typos or can think of better descriptions, examples, error messages, etc., please send them my way!</b></span> After we're more comfortable with R packages and get versed on GitHub, you'll be able to make those changes directly in the package. For now, you can just send me your suggestions and I'll make the changes.
+
+Finally, if you ever want to peak under the hood at the function, you can view it several ways. 
+<ol>
+<li>Keep F2 key pressed and click on the function name in R. This trick works for many but not all functions in R.</li>
+<li>View code in the <a href="https://github.com/doi-nps/wetlandHTLN/tree/main">GitHub doi-nps/wetlandHTLN repo</a>. The functions are in the R folder. 
+
+#### Setting up DSN
+<h4><b>Setting up a DSN</b></h4>
+<ol>
+<li>Go to Windows Start Menu and search ODBC. Click on ODBC Data Sources (64-bit) </li>
+
+```{r echo = F, out.height = '457px', out.width = '564px', fig.align = 'center'}
+knitr::include_graphics("./www/ODBC_step_1.jpg")
+```
+<li>Click on <i>Add</i>, then select <i>Microsoft Access Driver (\*.mdb, \*.accdb)</i> then click <i>Finish</i> in next menu.</li>
+
+```{r echo = F, out.height = '450px', out.width = '1018px', fig.align = 'center'}
+knitr::include_graphics("./www/ODBC_step_2.jpg")
+```
+
+<li>Enter <b>HTLN_wetlands</b> into the Data Source Name (red arrow), click on Select (red circle). In the new window find the path to your database in the upper right. Click on the database (yellow arrow), then click OK. Finally, add the name of the database file to the Description (blue arrow), so it's easier to check whether you're using the latest version.  </li>
+```{r echo = F, out.height = '486px', out.width = '600px', fig.align = 'center'}
+knitr::include_graphics("./www/ODBC_step_3.jpg")
+```
+
+<li>If updating an existing DSN, follow similar process, except click on the DSN in the first window and select <i>Configure</i> instead of Add.</li>
+</ol>
+
+### Get Data functions {.tabset}
+#### getBigTrees() 
+This function filters big tree data (i.e. trees > 40cm DBH) by plot, year, plot types, dominant vegetation, and nativity.
+
+<p class = 'fxn'>Get Big Tree data using default settings that return all records.</p>
+```{r}
+bigt <- getBigTrees()
+
+print_head(bigt)
+```
+
+<p class = 'fxn'>Return only 2023 data </p>
+```{r}
+bigtree23 <- getBigTrees(years = 2023)
+
+print_head(bigtree23)
+```
+
+<p class = 'fxn'>Return 2020 and later </p>
+```{r}
+bigtree20 <- getBigTrees(years = 2020:2024)
+
+print_head(bigtree20)
+```
+
+<p class = 'fxn'>Return only reference sites</p>
+```{r}
+ref <- getBigTrees(survey_type = c("reference", "womc, reference"))
+
+print_head(ref)
+```
+
+<p class = 'fxn'>Return only wetlands of management concern</p>
+```{r}
+womc <- getBigTrees(survey_type = c("womc", "womc, reference", "survey, womc"))
+
+print_head(womc)
+```
+
+<p class = 'fxn'>Return only depressional wetlands</p>
+```{r}
+dep <- getBigTrees(hgm_class = c("Depression"))
+
+print_head(dep)
+```
+
+<p class = 'fxn'>Return only forested sites</p>
+```{r}
+forest <- getBigTrees(dom_veg1 = "forest")
+
+print_head(forest)
+```
+
+<p class = 'fxn'>Return only native species</p>
+```{r}
+nat <- getBigTrees(nativity = 'native')
+
+print_head(nat)
+```
+
+<p class = 'fxn'>Return data for a subset of plots</p>
+```{r}
+pts <- getBigTrees(plotID = c("1007", "1017", "1034", "1036", "1043"))
+
+print_head(pts)
+```
+
+#### getBiomass()
+This function filters biomass data by plot, year, plot types, survey types, dominant vegetation, etc.
+
+<p class = 'fxn'>Get Biomass data using default settings that return all records.</p>
+```{r}
+bmass <- getBiomass()
+
+print_head(bmass)
+```
+
+<p class = 'fxn'>Return only 2023 data </p>
+```{r}
+bmass23 <- getBiomass(years = 2023)
+
+print_head(bmass23)
+```
+
+<p class = 'fxn'>Return 2020 and later </p>
+```{r}
+bmass20 <- getBiomass(years = 2020:2024)
+
+print_head(bmass20)
+```
+
+<p class = 'fxn'>Return only reference sites</p>
+```{r}
+ref <- getBiomass(survey_type = c("reference", "womc, reference"))
+
+print_head(ref)
+```
+
+<p class = 'fxn'>Return only wetlands of management concern</p>
+```{r}
+womc <- getBiomass(survey_type = c("womc", "womc, reference", "survey, womc"))
+
+print_head(womc)
+```
+
+<p class = 'fxn'>Return only depressional wetlands</p>
+```{r}
+dep <- getBiomass(hgm_class = c("Depression"))
+
+print_head(dep)
+```
+
+<p class = 'fxn'>Return only forested sites</p>
+```{r}
+forest <- getBiomass(dom_veg1 = "forest")
+
+print_head(forest)
+```
+
+<p class = 'fxn'>Return data for a subset of plots</p>
+```{r}
+pts <- getBiomass(plotID = c("1007", "1017", "1034", "1036", "1043"))
+
+print_head(pts)
+```
+
+
+#### getHerbs()
+This function filters VIBI herb data by plot, year, plot types, survey types, dominant vegetation, etc.
+
+<p class = 'fxn'>Get VIBI Herb data using default settings that return all records.</p>
+```{r}
+herb <- getHerbs()
+
+print_head(herb)
+```
+
+<p class = 'fxn'>Return only 2023 data </p>
+```{r}
+herb23 <- getHerbs(years = 2023)
+
+print_head(herb23)
+```
+
+<p class = 'fxn'>Return 2020 and later </p>
+```{r}
+herb20 <- getHerbs(years = 2020:2024)
+
+print_head(herb20)
+```
+
+<p class = 'fxn'>Return only reference sites</p>
+```{r}
+ref <- getHerbs(survey_type = c("reference", "womc, reference"))
+
+print_head(ref)
+```
+
+<p class = 'fxn'>Return only wetlands of management concern</p>
+```{r}
+womc <- getHerbs(survey_type = c("womc", "womc, reference", "survey, womc"))
+
+print_head(womc)
+```
+
+<p class = 'fxn'>Return only depressional wetlands</p>
+```{r}
+dep <- getHerbs(hgm_class = c("Depression"))
+
+print_head(dep)
+```
+
+<p class = 'fxn'>Return only forested sites</p>
+```{r}
+forest <- getHerbs(dom_veg1 = "forest")
+
+print_head(forest)
+```
+
+<p class = 'fxn'>Return only native species</p>
+```{r}
+nat <- getHerbs(nativity = 'native')
+
+print_head(nat)
+```
+
+<p class = 'fxn'>Return data for a subset of plots</p>
+```{r}
+pts <- getHerbs(plotID = c("1007", "1017", "1034", "1036", "1043"))
+
+print_head(pts)
+```
+
+#### getWoody()
+This function filters VIBI Woody data by plot, year, plot types, survey types, dominant vegetation, etc.
+
+<p class = 'fxn'>Get VIBI Woody data using default settings that return all records.</p>
+```{r}
+woody <- getWoody()
+
+print_head(woody)
+```
+
+<p class = 'fxn'>Return only 2023 data </p>
+```{r}
+woody23 <- getWoody(years = 2023)
+
+print_head(woody23)
+```
+
+<p class = 'fxn'>Return 2020 and later </p>
+```{r}
+woody20 <- getWoody(years = 2020:2024)
+
+print_head(woody20)
+```
+
+<p class = 'fxn'>Return only reference sites</p>
+```{r}
+ref <- getWoody(survey_type = c("reference", "womc, reference"))
+
+print_head(ref)
+```
+
+<p class = 'fxn'>Return only wetlands of management concern</p>
+```{r}
+womc <- getWoody(survey_type = c("womc", "womc, reference", "survey, womc"))
+
+print_head(womc)
+```
+
+<p class = 'fxn'>Return only depressional wetlands</p>
+```{r}
+dep <- getWoody(hgm_class = c("Depression"))
+
+print_head(dep)
+```
+
+<p class = 'fxn'>Return only forested sites</p>
+```{r}
+forest <- getWoody(dom_veg1 = "forest")
+
+print_head(forest)
+```
+
+<p class = 'fxn'>Return only native species</p>
+```{r}
+nat <- getWoody(nativity = 'native')
+
+print_head(nat)
+```
+
+<p class = 'fxn'>Return data for a subset of plots</p>
+```{r}
+pts <- getWoody(plotID = c("1007", "1017", "1034", "1036", "1043"))
+
+print_head(pts)
+```
+
+### Summary functions {.tabset}
+#### joinVIBI_module()
+This function summarizes module-level VIBI and filters by plot, year, and plot types. This function will return a VIBI score for each module within a site, and allows for more equal comparisons among sites with fewer than 4 modules. Averaging the module scores within a site is also possible via `sumVIBI()`.
+
+NOTE 1: Because the results from sumVIBI are averages rather than sums (ie the VIBI spreadsheet), their scores will be lower than other datasets that use the VIBI spreadsheet, which are straight sums.
+
+NOTE 2: The Biomass metric assumes the area sampled is always 0.1m2. Currently, if there's only a biomass record for a given year and no herb or woody data, those records are dropped.
+
+NOTE 3: Metric calculations and thresholds follow INTEGRATED WETLAND ASSESSMENT PROGRAM Part 9: Field Manual for the Vegetation Index of Biotic Integrity for Wetlands v. 1.5. Pages 17 - 20 and Table 2 were most useful.
+
+<p class = "fxn">Calculate module-level VIBI scores for all sites (default).</p>
+```{r}
+vibi <- joinVIBI_module()
+
+print_head(vibi)
+```
+
+<p class = "fxn">Calculate module-level VIBI scores for plot 124 and year 2023.</p>
+```{r}
+vibi124 <- joinVIBI_module(plotID = '124', years = 2023)
+
+print_head(vibi124)
+```
+
+<p class = "fxn">Calculate module-level VIBI scores for plots sampled in 2023.</p>
+```{r}
+vibi23 <- joinVIBI_module(years = 2023)
+
+print_head(vibi23)
+```
+
+<p class = "fxn">Calculate module-level VIBI scores for emergent wetlands.</p>
+```{r}
+vibi_em <- joinVIBI_module(dom_veg1 = "emergent")
+
+print_head(vibi_em)
+```
+
+<p class = "fxn">Calculate module-level reference wetlands.</p>
+```{r}
+vibi_ref <- joinVIBI_module(survey_type = c("reference", "womc, reference"))
+
+print_head(vibi_ref)
+```
+
+<p class = "fxn">Calculate module-level VIBI scores for depressional wetlands.</p>
+```{r}
+ vibi <- joinVIBI_module(hgm_class = "Depression")
+```
+
+
+#### joinVIBI_plot()
+This function summarizes plot-level VIBI and filters by plot, year, and plot types. This function most closely matches the OH EPA VIBI spreadsheet calculations. Slight differences in VIBI calculations are due to differences between the species list in the tlu_WetlndSpeciesList lookup table in the HTLN_wetlands database, and the species list in the FQAI list in the spreadsheet (particularly species added to or tweaked on the spreadsheet FQAI list). 
+
+**THIS FUNCTION ONLY WORKS ON PLOTS THAT HAVE 4 INTENSIVE MODULES SAMPLED.** This function is intended to provide results that are comparable with other datasets that use the VIBI and are based on 4 intensive modules. For module-level VIBI scores, including for comparisons among sites with fewer than 4 intensive modules, use `joinVIBI_module()`.
+
+NOTE 1: The Biomass metric assumes the area sampled is always 0.1m2. Currently, if there's only a biomass record for a given year and no herb or woody data, those records are dropped.
+
+NOTE 2: Metric calculations and thresholds follow INTEGRATED WETLAND ASSESSMENT PROGRAM Part 9: Field Manual for the Vegetation Index of Biotic Integrity for Wetlands v. 1.5. Pages 17 - 20 and Table 2 were most useful.
+
+<p class = "fxn">Calculate plot-level VIBI scores for all sites (default).</p>
+```{r}
+vibi <- joinVIBI_plot()
+
+print_head(vibi)
+```
+
+<p class = "fxn">Calculate plot-level VIBI scores for plot 124 and year 2023.</p>
+```{r}
+vibi124 <- joinVIBI_plot(plotID = '124', years = 2023)
+
+print_head(vibi124)
+```
+
+<p class = "fxn">Calculate plot-level VIBI scores for plots sampled in 2023.</p>
+```{r}
+vibi23 <- joinVIBI_plot(years = 2023)
+
+print_head(vibi23)
+```
+
+<p class = "fxn">Calculate plot-level VIBI scores for emergent wetlands.</p>
+```{r}
+vibi_em <- joinVIBI_plot(dom_veg1 = "emergent")
+
+print_head(vibi_em)
+```
+
+<p class = "fxn">Calculate plot-level reference wetlands.</p>
+```{r}
+vibi_ref <- joinVIBI_plot(survey_type = c("reference", "womc, reference"))
+
+print_head(vibi_ref)
+```
+
+<p class = "fxn">Calculate plot-level VIBI scores for depressional wetlands.</p>
+```{r}
+ vibi <- joinVIBI_plot(hgm_class = "Depression")
+```
+
+
+#### sumVIBI()
+This function summarizes plot-level VIBI by averaging module-level VIBI scores, and filters by plot, year, and plot types. Note that the Biomass metric assumes the area sampled is always 0.1m2. Metric calculations and thresholds follow INTEGRATED WETLAND ASSESSMENT PROGRAM Part 9: Field Manual for the Vegetation Index of Biotic Integrity for Wetlands v. 1.5. Pages 17 - 20 and Table 2 were most useful. For plot-level VIBI scores that are comparable with OH VIBI scores from other sites, use `joinVIBI_plot()`. Note however, that the `joinVIBI_plot()` only rates sites with 4 intensive modules. This function allows sites with fewer than 4 modules to be assessed on the same scale as sites with 4 modules. The VIBI scores with this function will be lower than the original VIBI spreadsheet approach, because the VIBI spreadsheet sums across the 4 modules, rather than averages. VIBI scores are applied after the module-level metrics are averaged to a plot-level value.
+
+<p class = "fxn">Average module-level to get plot-level VIBI scores for all sites (default).</p>
+```{r}
+vibi <- sumVIBI()
+
+print_head(vibi)
+```
+
+<p class = "fxn">Average module-level to get plot-level VIBI scores for plot 124 and year 2023.</p>
+```{r}
+vibi124 <- sumVIBI(plotID = '124', years = 2023)
+
+print_head(vibi124)
+```
+
+<p class = "fxn">Calculate module-level to get plot-level VIBI scores for plots sampled in 2023.</p>
+```{r}
+vibi23 <- sumVIBI(years = 2023)
+
+print_head(vibi23)
+```
+
+<p class = "fxn">Calculate module-level to get plot-level VIBI scores for emergent wetlands.</p>
+```{r}
+vibi_em <- sumVIBI(dom_veg1 = "emergent")
+
+print_head(vibi_em)
+```
+
+<p class = "fxn">Calculate module-level to get plot-level reference wetlands.</p>
+```{r}
+vibi_ref <- sumVIBI(survey_type = c("reference", "womc, reference"))
+
+print_head(vibi_ref)
+```
+
+<p class = "fxn">Calculate module-level to get plot-level VIBI scores for depressional wetlands.</p>
+```{r}
+ vibi <- sumVIBI(hgm_class = "Depression")
+```
+

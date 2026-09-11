@@ -1,0 +1,30 @@
+Package: wetlandHTLN
+Type: Package 
+Title: Package for HTLN wetland data in CUVA
+Version: 0.1.2
+Authors@R: person("Kate", "Miller", role = c("aut", "cre"), email = "kathryn_miller@nps.gov", comment = c(ORCID = "0000-0001-8823-6373"))
+Description: Packge for importing, querying, summarizing and visualizing 
+      Cuyahoga Valley National Park wetland data collected by the Heartland 
+      Inventory and Monitoring Network.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    dplyr,
+    purrr,
+    tidyr,
+    tidyselect
+Suggests: 
+    DBI,
+    odbc
+RoxygenNote: 7.3.3
+Collate: 
+    'getBigTrees.R'
+    'getBiomass.R'
+    'getHerbs.R'
+    'getPlots.R'
+    'getWoody.R'
+    'importData.R'
+    'joinVIBI_module.R'
+    'joinVIBI_plot.R'
+    'sumVIBI.R'

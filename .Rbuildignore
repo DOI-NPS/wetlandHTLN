@@ -1,0 +1,8 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^docs$
+^docs/www$
+^testing_scripts$
+^.*\.accdb$
+^.*\.zip$

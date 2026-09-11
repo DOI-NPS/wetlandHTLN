@@ -1,0 +1,208 @@
+---
+output:
+  html_document:
+    css: www/styles.css
+    anchor_sections: FALSE
+    includes:
+      in_header: "header_manual.html"
+
+params:
+  year_curr: 2025 # Current year of sampling
+  all_years: FALSE # If FALSE, only reports on year_curr; TRUE reports on all years
+  spp_list: "DB" # If FQAI, matches species in database against OH EPA spp. list. If "DB", matches against tlu_WetlndSpeciesList.    As of 20250606, stick with "DB" until a new FQAI list is published. 
+  
+---
+
+```{r setup, include = F}
+knitr::opts_chunk$set(echo = FALSE)
+options(knitr.kable.NA = '', scipen = 100)
+```
+
+```{r imports, include = FALSE}
+library(wetlandHTLN)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(DBI)
+library(odbc)
+#library(htmltools) # for tagList to iterate on a code chunk. Not sure I'm going to need this yet.
+
+importData()
+year_curr = params$year_curr
+year_range = if(params$all_years == TRUE){2008:year_curr} else {year_curr}
+year_hist = 2008:(year_curr-1)
+spp_list <- params$spp_list
+all_years = params$all_years
+#arglist <- list(park = park, years = year)
+
+# locs <- do.call(getPlots, arglist) |>
+#   select(LocationID) |> unique() |> c() #|> as.character()
+```
+
+
+Wetland Quality Control checking for CUVA and `r paste(year_curr, collapse = ", ")` {.tabset .tabset-pills}
+---
+
+```{r, include = F, results = 'hide'}
+source('QC_VIBI_report_compile.R')
+```
+
+### QC checks {.tabset}
+#### Summary {.tabset}
+The table below documents Quality Control checks performed on VIBI-related wetland data, along with number of records returned on each check. If records are returned for a given check, the row is highlighted yellow for errors and blue for records that aren't necessarily errors, but need further review. A separate tab corresponding to each check that returned results by protocol module (e.g. Herbs, Woody, etc.). 
+```{r}
+QC_check_table
+```
+
+#### Sampling Matrix
+```{r results = 'asis'}
+cat(paste0("The following matrix shows every site sampled ", 
+           ifelse(all_years == F, paste0("in ", year_curr, "."), 
+                  "across all years."),
+           " Highlighted rows are missing data for at least one module."))
+
+tbl_sample_evs
+```
+
+
+```{r eval = loc_include, results = "asis"}
+cat("### Locations {.tabset}", "\n\n")
+
+check_null_print(tbl_locid_typos, 4, "LocationID")
+
+check_null_print(tbl_feat_typos, 4, "FeatureType")
+
+check_null_print(tbl_feat_symb, 4, "FeatureID")
+
+check_null_print(tbl_miss_domveg, 4, "DomVeg missing")
+
+check_null_print(tbl_conflict_domveg, 4, "DomVeg conflict")
+
+check_null_print(tbl_area_error, 4, "AreaHA vs TotMods")
+
+check_null_print(tbl_intern_check, 4, "Intern vs TotalMods")
+
+cat("\n\n")
+
+```
+
+
+```{r eval = pev_include, results = "asis"}
+cat("### Sampling Periods/Events {.tabset}", "\n\n")
+
+check_null_print(tbl_miss_periods, 4, "miss PeriodID")
+
+check_null_print(tbl_miss_samp_evs, 4, "miss EventID")
+
+#check_null_print(tbl_no_evs, 4, "No EventIDs") # turned off. Remaining are ORAM visits
+
+check_null_print(tbl_miss_spd, 4, "Miss StartDate")
+
+check_null_print(tbl_odd_dates1, 4, "StartDate1")
+
+check_null_print(tbl_odd_dates2, 4, "StartDate2")
+
+cat("\n\n")
+
+```
+
+
+```{r eval = herb_include, results = "asis"}
+cat("### VIBI Herbs {.tabset}", "\n\n")
+
+check_null_print(tbl_herb_blanks, 4, "Herb blanks")
+
+check_null_print(tbl_herb_locid, 4, "LocationID issues")
+
+check_null_print(tbl_herb_dups, 4, "Duplicate spp.")
+
+check_null_print(tbl_herb_miss, 4, "Missing spp.")
+
+check_null_print(tbl_herb_once, 4, "One-timers")
+
+if(all_years == F){check_null_print(tbl_herb_plot_once, 4, "New to plot")}
+
+cat("\n\n")
+
+```
+
+
+```{r eval = biomass_include, results = 'asis'}
+cat("### VIBI Biomass {.tabset}", "\n\n")
+
+check_null_print(tbl_bmass_blanks, 4, "Biomass blanks")
+
+check_null_print(tbl_non_evs, 4, "Unmatched EventIDs")
+
+check_null_print(tbl_bmass_locid, 4, "LocationID issues")
+
+check_null_print(tbl_bmass_neg, 4, "Negative DryWt_g")
+
+check_null_print(tbl_bmass_dups, 4, "Duplicate DryWt_g")
+
+check_null_print(tbl_wt_99, 4, "DryWt_g 99pct")
+
+```
+
+```{r eval = woody_include, results = "asis"}
+cat("### VIBI Woody {.tabset}", "\n\n")
+
+check_null_print(tbl_woody_fid_check, 4, "FeatureIDs")
+
+check_null_print(tbl_woody_blanks, 4, "Woody blanks")
+
+check_null_print(tbl_woody_locid, 4, "LocationID issues")
+
+check_null_print(tbl_woody9s, 4, "-9999 counts")
+
+check_null_print(tbl_diamid_check, 4, "DiamIDs")
+
+check_null_print(tbl_woody_dups, 4, "Duplicate spp.")
+
+check_null_print(tbl_diam_99, 4, "DiamID 99pct")
+
+check_null_print(tbl_count_99, 4, "Counts 99pct")
+
+check_null_print(tbl_woody_miss, 4, "Missing spp.")
+
+check_null_print(tbl_woody_once, 4, "One-timers")
+
+if(all_years == F){check_null_print(tbl_woody_plot_once, 4, "New to plot")}
+
+cat("\n\n")
+
+```
+
+```{r eval = bigt_include, results = "asis"}
+cat("### Big Trees {.tabset}", "\n\n")
+
+check_null_print(tbl_woody_comb, 4, "BigTree counts")
+
+check_null_print(tbl_bigt_locid, 4, "LocationID issues")
+
+check_null_print(tbl_bigt_blanks, 4, "BigTree blanks")
+
+check_null_print(tbl_bigt_neg, 4, "Negative DBH")
+
+check_null_print(tbl_dbh_99, 4, "DBH 99pct")
+
+check_null_print(tbl_bigt_miss, 4, "Missing spp.")
+
+check_null_print(tbl_bigt_once, 4, "One-timers")
+
+cat("\n\n")
+
+```
+
+```{r eval = spp_include, results = 'asis'}
+cat("### Species List {.tabset}", "\n\n")
+
+#check_null_print(tbl_adv_check, 4, "Adventive check") # doesn't seem like a useful check
+
+check_null_print(tbl_miss_spp, 4, "Unmatched data in tluWSL")
+
+check_null_print(tbl_miss_spp2, 4, "Unmatched tluWSL and FQAI")
+
+cat("\n\n")
+```
+

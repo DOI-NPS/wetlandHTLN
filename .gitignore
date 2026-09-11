@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.zip
+*.csv
+*.accdb
+docs/QC_VIBI_report.html
+*.svg
+*.jpg
